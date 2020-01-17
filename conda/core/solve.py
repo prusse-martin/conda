@@ -380,7 +380,8 @@ class Solver(object):
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
         # add in historically-requested specs
-        ssc.specs_map.update(ssc.specs_from_history_map)
+        if not ssc.prune:
+            ssc.specs_map.update(ssc.specs_from_history_map)
 
         # these are things that we want to keep even if they're not explicitly specified.  This
         #     is to compensate for older installers not recording these appropriately for them
