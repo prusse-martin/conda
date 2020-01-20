@@ -385,12 +385,16 @@ def test_update_prune_1(tmpdir):
         ))
         assert convert_to_dist_str(final_state_1) == order
 
+    # Here numpy is removed from the specs (but the old specs are kept as
+    # history).
     new_environment_specs = MatchSpec("python=2.7.3"),
 
     with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
+
+        # Numpy should now be absent from the solved packages.
         order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -438,12 +442,18 @@ def test_update_prune_2(tmpdir):
         ))
         assert convert_to_dist_str(final_state_1) == order
 
+    # Here accelerate is removed from the specs (but the old specs are kept as
+    # history). This should cause every dependency of accelerate to disappear
+    # from the pruned package list.
     new_environment_specs = MatchSpec("python=2.7.3"),
 
     with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
+
+        # Every dependecy of accelerate should now be absent from the solved
+        # packages.
         order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -491,12 +501,19 @@ def test_update_prune_3(tmpdir):
         ))
         assert convert_to_dist_str(final_state_1) == order
 
+    # Here accelerate is removed from the specs (but the old specs are kept as
+    # history). This should cause every dependency of accelerate to disappear
+    # from the pruned package list, but numpy should be kept, because it is still
+    # in the specs.
     new_environment_specs = MatchSpec("numpy"), MatchSpec("python=2.7.3"),
 
     with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
+
+        # Every dependecy of accelerate should now be absent from the solved packages,
+        # but numpy should remain.
         order = add_subdir_to_iter((
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
