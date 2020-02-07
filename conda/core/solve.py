@@ -206,6 +206,8 @@ class Solver(object):
                 the solved state of the environment.
 
         """
+        if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            update_modifier = NULL
         if update_modifier is NULL:
             update_modifier = context.update_modifier
         else:

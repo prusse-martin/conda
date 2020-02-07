@@ -527,6 +527,50 @@ def test_update_prune_3(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
 
+def test_update_prune_4(tmpdir):
+    """Regression test: Ensure that update with prune is not taking the history
+    into account, since that stops it from removing packages that were removed
+    from the environment specs.
+    """
+    specs = MatchSpec("numpy"), MatchSpec("python=2.7.3"),
+
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter((
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::python-2.7.3-7',
+            'channel-1::numpy-1.7.1-py27_0',
+        ))
+        assert convert_to_dist_str(final_state_1) == order
+
+    # Here numpy is removed from the specs (but the old specs are kept as
+    # history).
+    new_environment_specs = MatchSpec("python=2.7.3"),
+
+    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
+                    history_specs=specs) as solver:
+        final_state_1 = solver.solve_final_state(prune=True, update_modifier=UpdateModifier.FREEZE_INSTALLED)
+        pprint(convert_to_dist_str(final_state_1))
+
+        # Numpy should now be absent from the solved packages.
+        order = add_subdir_to_iter((
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::python-2.7.3-7',
+        ))
+        assert convert_to_dist_str(final_state_1) == order
+
+
 def test_force_remove_1(tmpdir):
     specs = MatchSpec("numpy[build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
