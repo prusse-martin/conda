@@ -206,6 +206,9 @@ class Solver(object):
                 the solved state of the environment.
 
         """
+        if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
+            update_modifier = NULL
+
         if update_modifier is NULL:
             update_modifier = context.update_modifier
         else:
@@ -379,38 +382,45 @@ class Solver(object):
 
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
-        # add in historically-requested specs
-        ssc.specs_map.update(ssc.specs_from_history_map)
+        if ssc.prune:
+            # When prunning do not consider history on already installed packages when solving
+            prepared_specs = set(concatv(
+                self.specs_to_remove,
+                self.specs_to_add,
+            ))
+        else:
+            # add in historically-requested specs
+            ssc.specs_map.update(ssc.specs_from_history_map)
 
-        # these are things that we want to keep even if they're not explicitly specified.  This
-        #     is to compensate for older installers not recording these appropriately for them
-        #     to be preserved.
-        for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
-                         'console_shortcut', 'powershell_shortcut'):
-            if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
-                ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
+            # these are things that we want to keep even if they're not explicitly specified.  This
+            #     is to compensate for older installers not recording these appropriately for them
+            #     to be preserved.
+            for pkg_name in ('anaconda', 'conda', 'conda-build', 'python.app',
+                             'console_shortcut', 'powershell_shortcut'):
+                if pkg_name not in ssc.specs_map and ssc.prefix_data.get(pkg_name, None):
+                    ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
-        for prec in ssc.prefix_data.iter_records():
-            # first check: add everything if we have no history to work with.
-            #    This happens with "update --all", for example.
-            #
-            # second check: add in aggressively updated packages
-            #
-            # third check: add in foreign stuff (e.g. from pip) into the specs
-            #    map. We add it so that it can be left alone more. This is a
-            #    declaration that it is manually installed, much like the
-            #    history map. It may still be replaced if it is in conflict,
-            #    but it is not just an indirect dep that can be pruned.
-            if (not ssc.specs_from_history_map
-                    or MatchSpec(prec.name) in context.aggressive_update_packages
-                    or prec.subdir == 'pypi'):
-                ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
+            for prec in ssc.prefix_data.iter_records():
+                # first check: add everything if we have no history to work with.
+                #    This happens with "update --all", for example.
+                #
+                # second check: add in aggressively updated packages
+                #
+                # third check: add in foreign stuff (e.g. from pip) into the specs
+                #    map. We add it so that it can be left alone more. This is a
+                #    declaration that it is manually installed, much like the
+                #    history map. It may still be replaced if it is in conflict,
+                #    but it is not just an indirect dep that can be pruned.
+                if (not ssc.specs_from_history_map
+                        or MatchSpec(prec.name) in context.aggressive_update_packages
+                        or prec.subdir == 'pypi'):
+                    ssc.specs_map.update({prec.name: MatchSpec(prec.name)})
 
-        prepared_specs = set(concatv(
-            self.specs_to_remove,
-            self.specs_to_add,
-            itervalues(ssc.specs_from_history_map),
-        ))
+            prepared_specs = set(concatv(
+                self.specs_to_remove,
+                self.specs_to_add,
+                itervalues(ssc.specs_from_history_map),
+            ))
 
         index, r = self._prepare(prepared_specs)
         ssc.set_repository_metadata(index, r)
@@ -553,11 +563,13 @@ class Solver(object):
         # the only things we should consider freezing are things that don't conflict with the new
         #    specs being added.
         explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
-
-        conflict_specs = ssc.r.get_conflicting_specs(tuple(concatv(
-            (_.to_match_spec() for _ in ssc.prefix_data.iter_records()))), self.specs_to_add
-        ) or tuple()
-        conflict_specs = set(_.name for _ in conflict_specs)
+        if ssc.prune:
+            conflict_specs = set()
+        else:
+            conflict_specs = ssc.r.get_conflicting_specs(tuple(concatv(
+                (_.to_match_spec() for _ in ssc.prefix_data.iter_records()))), self.specs_to_add
+            ) or tuple()
+            conflict_specs = set(_.name for _ in conflict_specs)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
@@ -1053,7 +1065,10 @@ class SolverStateContainer(object):
 
         # Group 4. Mutable working containers
         self.specs_map = odict()
-        self.solution_precs = tuple(self.prefix_data.iter_records())
+        if prune:
+            self.solution_precs = tuple()
+        else:
+            self.solution_precs = tuple(self.prefix_data.iter_records())
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
