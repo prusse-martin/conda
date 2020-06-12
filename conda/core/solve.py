@@ -383,7 +383,7 @@ class Solver(object):
     @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
         if ssc.prune:
-            # When prunning do not consider history on already installed packages when solving
+            # When pruning DO NOT consider history of already installed packages when solving.
             prepared_specs = set(concatv(
                 self.specs_to_remove,
                 self.specs_to_add,
@@ -564,12 +564,15 @@ class Solver(object):
         #    specs being added.
         explicit_pool = ssc.r._get_package_pool(self.specs_to_add)
         if ssc.prune:
-            conflict_specs = set()
+            # Ignore installed specs on prune.
+            installed_specs = ()
         else:
-            conflict_specs = ssc.r.get_conflicting_specs(tuple(concatv(
-                (_.to_match_spec() for _ in ssc.prefix_data.iter_records()))), self.specs_to_add
-            ) or tuple()
-            conflict_specs = set(_.name for _ in conflict_specs)
+            installed_specs = tuple(concatv(
+                (_.to_match_spec() for _ in ssc.prefix_data.iter_records())
+            ))
+
+        conflict_specs = ssc.r.get_conflicting_specs(installed_specs, self.specs_to_add) or tuple()
+        conflict_specs = set(_.name for _ in conflict_specs)
 
         for pkg_name, spec in iteritems(ssc.specs_map):
             matches_for_spec = tuple(prec for prec in ssc.solution_precs if spec.match(prec))
@@ -1065,10 +1068,8 @@ class SolverStateContainer(object):
 
         # Group 4. Mutable working containers
         self.specs_map = odict()
-        if prune:
-            self.solution_precs = tuple()
-        else:
-            self.solution_precs = tuple(self.prefix_data.iter_records())
+        self.solution_precs = None
+        self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
@@ -1091,9 +1092,16 @@ class SolverStateContainer(object):
     def set_repository_metadata(self, index, r):
         self.index, self.r = index, r
 
+    def _init_solution_precs(self):
+        if self.prune:
+            # DO NOT add existing prefix data to solution on prune
+            self.solution_precs = tuple()
+        else:
+            self.solution_precs = tuple(self.prefix_data.iter_records())
+
     def working_state_reset(self):
         self.specs_map = odict()
-        self.solution_precs = tuple(self.prefix_data.iter_records())
+        self._init_solution_precs()
         self.add_back_map = {}  # name: (prec, spec)
         self.final_environment_specs = None
 
