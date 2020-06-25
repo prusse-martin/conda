@@ -571,6 +571,29 @@ def test_update_prune_4(tmpdir):
         assert convert_to_dist_str(final_state_1) == order
 
 
+@pytest.mark.parametrize('prune', [True, False])
+def test_update_prune_5(tmpdir, prune, capsys):
+    """Regression test: Check that prefix data is not taken into account when solving on prune.
+    """
+    # "Create" a conda env with specs that "pin" dependencies.
+    specs = MatchSpec("python=2.7"), MatchSpec("numexpr==2.0.1=np17py27_p3")
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+
+    out, _ = capsys.readouterr()
+    assert 'Updating numexpr is constricted by' not in out
+
+    # If prefix data is evaluated it will conflict with "pinned" dependencies of new specs.
+    new_environment_specs = MatchSpec("python=2.7"), MatchSpec("numexpr==2.0.1=np17py27_p2")
+    with get_solver(tmpdir, new_environment_specs, prefix_records=final_state_1,
+                    history_specs=specs) as solver:
+        solver.solve_final_state(prune=prune)
+
+    out, _ = capsys.readouterr()
+    solve_using_prefix_data = not prune
+    assert ('Updating numexpr is constricted by' in out) is solve_using_prefix_data
+
+
 def test_force_remove_1(tmpdir):
     specs = MatchSpec("numpy[build=*py27*]"),
     with get_solver(tmpdir, specs) as solver:
