@@ -321,6 +321,7 @@ def massage_arguments(arguments, errors='assert'):
 
 
 def wrap_subprocess_call(on_win, root_prefix, prefix, dev_mode, debug_wrapper_scripts, arguments):
+    debug_wrapper_scripts = True
     if on_win:
         ensure_comspec_set()
     arguments = massage_arguments(arguments)
