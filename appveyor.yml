@@ -42,6 +42,7 @@ install:
 build: false
 
 test_script:
+  - TYPE dev-init.bat
   - CALL dev-init.bat
   - conda-build tests\test-recipes\activate_deactivate_package
   - py.test %ADD_COV% -m "not integration and not installed" -v --basetemp=C:\tmp

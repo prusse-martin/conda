@@ -219,10 +219,10 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ['SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
             'CALL \"%s\" %s' % (join(dev_env_prefix, 'condabin', 'conda_hook.bat'), dev_arg),
-            'IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
+            'IF %errorlevel% NEQ 0 EXIT /B %errorlevel%',
             'CALL \"%s\" activate %s \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
                                                  dev_arg, dev_env_prefix),
-            'IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
+            'IF %errorlevel% NEQ 0 EXIT /B %errorlevel%',
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
