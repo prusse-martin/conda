@@ -212,7 +212,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
             dev_arg = '--dev'
         else:
             dev_arg = ''
-        builder = []
+        builder = ['@echo on']
         builder += ["IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" CALL "
                     "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
         builder += ["SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
