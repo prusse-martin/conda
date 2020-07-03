@@ -57,7 +57,7 @@ deactivate_args = ['deactivate', dev_arg]
 
 if on_win:
     import ctypes
-    PYTHONIOENCODING = 'cp' + str(ctypes.cdll.kernel32.GetACP())
+    PYTHONIOENCODING = str(ctypes.cdll.kernel32.GetACP())
 else:
     PYTHONIOENCODING = None
 
@@ -1246,6 +1246,7 @@ class ShellWrapperUnitTests(TestCase):
         @SET "CONDA_DEFAULT_ENV=%(native_prefix)s"
         @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
         %(conda_exe_export)s
+        @SET "PYTHONIOENCODING=1252"
         @CALL "%(activate1)s"
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -1332,6 +1333,7 @@ class ShellWrapperUnitTests(TestCase):
         setenv CONDA_DEFAULT_ENV "%(native_prefix)s";
         setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
         %(conda_exe_export)s;
+        setenv PYTHONIOENCODING "1252";
         source "%(activate1)s";
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -1419,6 +1421,7 @@ class ShellWrapperUnitTests(TestCase):
         $CONDA_DEFAULT_ENV = '%(native_prefix)s'
         $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
         %(conda_exe_export)s
+        $PYTHONIOENCODING = '1252'
         %(sourcer)s "%(activate1)s"
         """)
         e_activate_info = {
@@ -1521,6 +1524,7 @@ class ShellWrapperUnitTests(TestCase):
         set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
         set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
         %(conda_exe_export)s;
+        set -gx PYTHONIOENCODING "1252";
         source "%(activate1)s";
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -1601,6 +1605,7 @@ class ShellWrapperUnitTests(TestCase):
         $Env:CONDA_DEFAULT_ENV = "%(prefix)s"
         $Env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
         %(conda_exe_export)s
+        $Env:PYTHONIOENCODING = "1252"
         . "%(activate1)s"
         """) % {
             'prefix': self.prefix,

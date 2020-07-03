@@ -639,9 +639,6 @@ class _Activator(object):
     def _build_activate_shell_custom(self, export_vars):
         # A method that can be overriden by shell-specific implementations.
         # The signature of this method may change in the future.
-        if on_win:
-            import ctypes
-            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
         pass
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
@@ -912,6 +909,11 @@ class CshActivator(_Activator):
                     % (context.conda_exe, context.conda_prefix, context.conda_exe,
                        sys.executable))
 
+    def _build_activate_shell_custom(self, export_vars):
+        if on_win:
+            import ctypes
+            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
+
 
 class XonshActivator(_Activator):
 
@@ -953,6 +955,11 @@ class XonshActivator(_Activator):
     def _hook_preamble(self):
         return '$CONDA_EXE = "%s"' % self.path_conversion(context.conda_exe)
 
+    def _build_activate_shell_custom(self, export_vars):
+        if on_win:
+            import ctypes
+            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
+
 
 class CmdExeActivator(_Activator):
 
@@ -978,6 +985,10 @@ class CmdExeActivator(_Activator):
     # def _hook_preamble(self):
     #     if on_win:
     #         return '@chcp 65001'
+
+    def _build_activate_shell_custom(self, export_vars):
+        import ctypes
+        export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
 
 
 class FishActivator(_Activator):
@@ -1013,6 +1024,11 @@ class FishActivator(_Activator):
                     'set _CONDA_EXE "%s"\n'
                     'set -gx CONDA_PYTHON_EXE "%s"'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe, sys.executable))
+
+    def _build_activate_shell_custom(self, export_vars):
+        if on_win:
+            import ctypes
+            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
 
 
 class PowerShellActivator(_Activator):
@@ -1059,6 +1075,11 @@ class PowerShellActivator(_Activator):
         if context.changeps1:
             return "Add-CondaEnvironmentToPrompt"
         return None
+
+    def _build_activate_shell_custom(self, export_vars):
+        if on_win:
+            import ctypes
+            export_vars.update({"PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),})
 
 
 activator_map = {
